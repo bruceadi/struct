@@ -26,7 +26,6 @@ int unpack(char const* buf,char const* fmt,...){
   va_list args;
   int isLE = is_native_LE();
   int off = 0;
-  char *str;
   uint16_t* u16;
   uint32_t* u32;
   uint64_t* u64;
@@ -78,7 +77,8 @@ int unpack(char const* buf,char const* fmt,...){
                   }
         case 'f': *va_arg(args, float*)= *(float*)(buf + off); off += sizeof(float); break;
         case 'd': *va_arg(args, double*)= *(double*)(buf + off); off += sizeof(double); break;
-        case 's': str = va_arg(args, char*); while(*str++ = buf[off++]); break;
+        case 's': *va_arg(args, char**) = (char*)(buf+off); while(buf[off++]); break;  //do not copy
+        case 'p': *va_arg(args, void**) = *(void**)(buf+off); off += sizeof(void*); //only used inproc
         default: break;
       }
     }
@@ -117,6 +117,7 @@ int pack_size(char const* fmt){
        case 'f': sz += sizeof(float); break;
        case 'd': sz += sizeof(double); break;
        case 's': break;  //no idea how long
+       case 'p': sz += sizeof(void*);
        default: break;
      }
    }
@@ -185,6 +186,7 @@ int pack(char * buf,char const* fmt, ...){
        case 'f': *(float*)(buf + off) = va_arg(args, double); off += sizeof(float); break;
        case 'd':  *(double*)(buf + off) = va_arg(args, double); off += sizeof(double); break;
        case 's': str = va_arg(args, char*); while(buf[off++] = *str++); break;
+       case 'p': *(void**)(buf+off) = va_arg(args, void**); off += sizeof(void*);
        default: break;
      }
    }
@@ -196,13 +198,14 @@ int pack(char * buf,char const* fmt, ...){
 
 int main(){
  char buf[1024];
- char* fmt = "<QxhIs";
+ char* fmt = "<Q4xphIs";
 
- pack(buf, fmt, (uint64_t)9981, (int16_t)5678, (int32_t)123456, "hello what?");
+ pack(buf, fmt, (uint64_t)9981, buf, (int16_t)5678, (int32_t)123456, "hello what?");
  uint64_t x;
  int16_t y;
  int32_t z;
- char tmp[128];
- unpack(buf, fmt, &x, &y, &z, tmp);
+ char*s;
+ void *p;
+ unpack(buf, fmt, &x, &p, &y, &z, &s);
  return 0;
 }
