@@ -198,14 +198,14 @@ int pack(char * buf,char const* fmt, ...){
 
 int main(){
  char buf[1024];
- char* fmt = "<Q4xphIs";
 
- pack(buf, fmt, (uint64_t)9981, buf, (int16_t)5678, (int32_t)123456, "hello what?");
+ pack(buf, ">Q4xphIsf", (uint64_t)9981, buf, (int16_t)5678, (int32_t)123456, "hello what?", 3.1415926f);
  uint64_t x;
  int16_t y;
  int32_t z;
+ float d;
  char*s;
  void *p;
- unpack(buf, fmt, &x, &p, &y, &z, &s);
+ unpack(buf, ">Q4xphIsf", &x, &p, &y, &z, &s,&d);
  return 0;
 }
