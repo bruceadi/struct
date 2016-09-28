@@ -88,43 +88,6 @@ int unpack(char const* buf, char const* fmt, ...) {
   return off;
 }
 
-int pack_size(char const* fmt) {
-  int sz = 0;
-  uint8_t prexfix;
-  while (*fmt) {
-    prexfix = 0;
-    while (*fmt >= '0' && *fmt <= '9') {
-      prexfix = prexfix * 10 + *fmt - '0';
-      ++fmt;
-    }
-    if (prexfix == 0) {
-      prexfix = 1;
-    }
-    while (prexfix--) {
-      switch (*fmt) {
-      case '<': break;
-      case '>': break;
-      case 'x':
-      case 'c':
-      case 'b':
-      case 'B': sz += 1; break;
-      case 'h':
-      case 'H': sz += 2; break;
-      case 'i':
-      case 'I': sz += 4; break;
-      case 'q':
-      case 'Q': sz += 8; break;
-      case 'f': sz += sizeof(float); break;
-      case 'd': sz += sizeof(double); break;
-      case 's': break;  //no idea how long
-      case 'p': sz += sizeof(void*);
-      default: break;
-      }
-    }
-    ++fmt;
-  }
-  return sz;
-}
 
 int pack(char * buf, char const* fmt, ...) {
   va_list args;
@@ -185,7 +148,7 @@ int pack(char * buf, char const* fmt, ...) {
       }
       case 'f': *(float*)(buf + off) = va_arg(args, double); off += sizeof(float); break;
       case 'd':  *(double*)(buf + off) = va_arg(args, double); off += sizeof(double); break;
-      case 's': str = va_arg(args, char*); while (buf[off++] = *str++); break;
+      case 's': str = va_arg(args, char*); while ((buf[off++] = *str++)); break;
       case 'p': *(void**)(buf + off) = va_arg(args, void**); off += sizeof(void*);
       default: break;
       }
