@@ -40,7 +40,7 @@ int unpack(char const* buf, char const* fmt, ...) {
     if (prexfix == 0) {
       prexfix = 1;
     }
-    while (prexfix--) {
+    while (prexfix) {
       switch (*fmt) {
       case '<': isLE = 1; break;
       case '>': isLE = 0; break;
@@ -77,10 +77,18 @@ int unpack(char const* buf, char const* fmt, ...) {
       }
       case 'f': *va_arg(args, float*) = *(float*)(buf + off); off += sizeof(float); break;
       case 'd': *va_arg(args, double*) = *(double*)(buf + off); off += sizeof(double); break;
-      case 's': *va_arg(args, char**) = (char*)(buf + off); while (buf[off++]); break;  //do not copy
-      case 'p': *va_arg(args, void**) = *(void**)(buf + off); off += sizeof(void*); //only used inproc
+      case 's':
+        *va_arg(args, char**) = (char*)(buf + off);
+        if (prexfix > 1) {
+          off += prexfix;  prexfix = 1;
+        }
+        else
+          while (buf[off++]);
+        break;  //do not copy
+      case 'p': *va_arg(args, void**) = *(void**)(buf + off); off += sizeof(void*); break;//only used inproc
       default: break;
       }
+      --prexfix;
     }
     ++fmt;
   }
@@ -108,7 +116,7 @@ int pack(char * buf, char const* fmt, ...) {
     if (prexfix == 0) {
       prexfix = 1;
     }
-    while (prexfix--) {
+    while (prexfix) {
       switch (*fmt) {
       case '<': isLE = 1; break;
       case '>': isLE = 0; break;
@@ -148,10 +156,17 @@ int pack(char * buf, char const* fmt, ...) {
       }
       case 'f': *(float*)(buf + off) = va_arg(args, double); off += sizeof(float); break;
       case 'd':  *(double*)(buf + off) = va_arg(args, double); off += sizeof(double); break;
-      case 's': str = va_arg(args, char*); while ((buf[off++] = *str++)); break;
-      case 'p': *(void**)(buf + off) = va_arg(args, void**); off += sizeof(void*);
+      case 's': str = va_arg(args, char*);
+        if (prexfix > 1) {
+          while ((--prexfix, buf[off++] = *str++));  off += prexfix;  prexfix = 1;
+        }
+        else
+          while ((buf[off++] = *str++));
+        break;
+      case 'p': *(void**)(buf + off) = va_arg(args, void**); off += sizeof(void*); break;
       default: break;
       }
+      --prexfix;
     }
     ++fmt;
   }
@@ -162,13 +177,13 @@ int pack(char * buf, char const* fmt, ...) {
 int main() {
   char buf[1024];
 
-  pack(buf, ">Q4xphIsf", (uint64_t)9981, buf, (int16_t)5678, (int32_t)123456, "hello what?", 3.1415926f);
+  pack(buf, ">Q4xphI12sf", (uint64_t)0x9981, buf, (int16_t)0x5678, (int32_t)0x123456, "hello what?", 3.1415926f);
   uint64_t x;
   int16_t y;
   int32_t z;
   float d;
   char*s;
   void *p;
-  unpack(buf, ">Q4xphIsf", &x, &p, &y, &z, &s, &d);
+  unpack(buf, ">Q4xphI12sf", &x, &p, &y, &z, &s, &d);
   return 0;
 }
